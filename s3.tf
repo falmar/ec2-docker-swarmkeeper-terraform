@@ -6,7 +6,7 @@ resource "aws_s3_bucket" "docker_swarm" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 resource "aws_s3_bucket_server_side_encryption_configuration" "docker_swarm_encryption" {
