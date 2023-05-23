@@ -1,5 +1,5 @@
 resource "aws_key_pair" "main" {
-  public_key = file("./ssh_keys/main")
+  public_key = file("./ssh_keys/main.pub")
 }
 
 data "aws_iam_policy_document" "ec2_assume_role" {

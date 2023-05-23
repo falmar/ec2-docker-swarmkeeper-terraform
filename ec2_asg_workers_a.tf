@@ -57,7 +57,7 @@ resource "aws_launch_template" "docker_worker" {
     ebs {
       delete_on_termination = true
       encrypted  = true
-      volume_size = 30
+      volume_size = 8
       volume_type = "gp3"
       throughput = 125
       iops = 3000
@@ -80,7 +80,7 @@ resource "aws_launch_template" "docker_worker" {
     cpu_credits = "unlimited"
   }
 
-  user_data = base64encode()
+  user_data = base64encode("")
 
   tags = {
     "DockerPlatform"     = "linux"
@@ -97,8 +97,9 @@ resource "aws_autoscaling_group" "docker_worker" {
 
   name_prefix = "docker-worker"
 
-  min_size = 4
-  max_size = 5
+  min_size = 1
+  desired_capacity = 1
+  max_size = 3
 
   capacity_rebalance        = true
   force_delete              = true

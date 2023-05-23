@@ -51,6 +51,19 @@ resource "aws_launch_template" "asg" {
     arn = aws_iam_instance_profile.docker_manager.arn
   }
 
+  block_device_mappings {
+    device_name = "/dev/sda1"
+
+    ebs {
+      delete_on_termination = true
+      encrypted  = true
+      volume_size = 8
+      volume_type = "gp3"
+      throughput = 125
+      iops = 3000
+    }
+  }
+
   network_interfaces {
     associate_public_ip_address = true
     delete_on_termination       = true
@@ -67,7 +80,7 @@ resource "aws_launch_template" "asg" {
     cpu_credits = "unlimited"
   }
 
-  user_data = base64encode()
+  user_data = base64encode("")
 
   tags = {
     "DockerPlatform"     = "linux"
@@ -84,7 +97,8 @@ resource "aws_autoscaling_group" "docker_manager" {
 
   name_prefix = "docker-manager"
 
-  min_size = 3
+  min_size = 1
+  desired_capacity = 1
   max_size = 3
 
   capacity_rebalance        = true

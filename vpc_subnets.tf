@@ -2,10 +2,6 @@ data "aws_availability_zones" "subnet_availability_zones" {
   state = "available"
 
   filter {
-    name   = "opt-in-status"
-    values = ["not-opted-in", "opted-in"]
-  }
-  filter {
     name   = "zone-name"
     values = var.aws_subnet_azs
   }
