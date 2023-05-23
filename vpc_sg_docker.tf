@@ -1,4 +1,3 @@
-
 resource "aws_security_group" "docker_plane" {
   vpc_id = aws_vpc.docker_swarm.id
 
@@ -23,6 +22,26 @@ resource "aws_security_group" "docker_ingress" {
   vpc_id = aws_vpc.docker_swarm.id
 
   # ingress ports on worker nodes
+
+  # grafana
+  ingress {
+    from_port = 9080
+    to_port   = 9080
+    protocol  = "tcp"
+    self      = true
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  # prometheus
+  ingress {
+    from_port = 9090
+    to_port   = 9090
+    protocol  = "tcp"
+    self      = true
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
 
   tags = {
     Name = "docker-ingress"
