@@ -44,8 +44,15 @@ resource "aws_launch_template" "docker_worker" {
   key_name = aws_key_pair.main.key_name
 
   # free until 2023-12-31
-  instance_type          = "t4g.small"
+  instance_type          = "t4g.nano"
   update_default_version = true
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+    instance_metadata_tags      = "enabled"
+  }
 
   iam_instance_profile {
     arn = aws_iam_instance_profile.docker_worker.arn
@@ -56,11 +63,11 @@ resource "aws_launch_template" "docker_worker" {
 
     ebs {
       delete_on_termination = true
-      encrypted  = true
-      volume_size = 8
-      volume_type = "gp3"
-      throughput = 125
-      iops = 3000
+      encrypted             = true
+      volume_size           = 8
+      volume_type           = "gp3"
+      throughput            = 125
+      iops                  = 3000
     }
   }
 
@@ -97,9 +104,9 @@ resource "aws_autoscaling_group" "docker_worker" {
 
   name_prefix = "docker-worker"
 
-  min_size = 1
+  min_size         = 1
   desired_capacity = 1
-  max_size = 3
+  max_size         = 3
 
   capacity_rebalance        = true
   force_delete              = true
@@ -113,11 +120,11 @@ resource "aws_autoscaling_group" "docker_worker" {
   mixed_instances_policy {
     instances_distribution {
       on_demand_base_capacity                  = 0
-      on_demand_percentage_above_base_capacity = 100
+      on_demand_percentage_above_base_capacity = 0
 
-#      spot_instance_pools      = 0
-#      spot_allocation_strategy = "capacity-optimized"
-#      spot_max_price           = "0.00"
+      spot_instance_pools      = 0
+      spot_allocation_strategy = "price-capacity-optimized"
+      spot_max_price           = "0.014"
     }
 
     launch_template {
@@ -164,4 +171,17 @@ resource "aws_autoscaling_group" "docker_worker" {
     aws_launch_template.docker_worker,
     aws_vpc.docker_swarm
   ]
+}
+
+resource "aws_autoscaling_lifecycle_hook" "docker_worker" {
+  name                   = "wait_docker_worker"
+  autoscaling_group_name = aws_autoscaling_group.docker_worker.name
+  default_result         = "CONTINUE"
+  heartbeat_timeout      = 120 # 2 minutes
+  lifecycle_transition   = "autoscaling:EC2_INSTANCE_TERMINATING"
+
+  // TODO: add notification
+  #  notification_metadata = jsonencode({
+  #
+  #  })
 }
