@@ -18,12 +18,20 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "docker_swarm_encr
       sse_algorithm = "AES256"
     }
   }
+
+  depends_on = [
+    aws_s3_bucket.docker_swarm,
+  ]
 }
 resource "aws_s3_bucket_ownership_controls" "docker_swarm" {
   bucket = aws_s3_bucket.docker_swarm.id
   rule {
     object_ownership = "BucketOwnerPreferred"
   }
+
+  depends_on = [
+    aws_s3_bucket.docker_swarm,
+  ]
 }
 resource "aws_s3_bucket_public_access_block" "docker_swarm" {
   bucket = aws_s3_bucket.docker_swarm.id
@@ -32,15 +40,19 @@ resource "aws_s3_bucket_public_access_block" "docker_swarm" {
   block_public_policy     = false
   ignore_public_acls      = false
   restrict_public_buckets = false
-}
 
-resource "aws_s3_bucket_acl" "docker_swarm" {
   depends_on = [
     aws_s3_bucket.docker_swarm,
   ]
+}
 
+resource "aws_s3_bucket_acl" "docker_swarm" {
   bucket = aws_s3_bucket.docker_swarm.id
   acl    = "private"
+
+  depends_on = [
+    aws_s3_bucket.docker_swarm,
+  ]
 }
 
 output "docker_swarm_bucket" {
