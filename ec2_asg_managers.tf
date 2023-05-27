@@ -37,6 +37,30 @@ resource "aws_iam_policy" "docker_manager_join" {
   })
 }
 
+# allow completing worker node lifecycle actions
+resource "aws_iam_role_policy_attachment" "docker_manager_lifecycle" {
+  policy_arn = aws_iam_policy.docker_manager_lifecycle.arn
+  role       = aws_iam_role.docker_manager.name
+}
+
+resource "aws_iam_policy" "docker_manager_lifecycle" {
+  policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "autoscaling:CompleteLifecycleAction",
+          "autoscaling:RecordLifecycleActionHeartbeat"
+        ]
+        Resource = [
+          aws_autoscaling_group.docker_worker.arn
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_launch_template" "asg" {
   name_prefix = "docker_manager"
   image_id    = data.aws_ami.arm_ubuntu_docker.id
@@ -51,16 +75,23 @@ resource "aws_launch_template" "asg" {
     arn = aws_iam_instance_profile.docker_manager.arn
   }
 
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+    instance_metadata_tags      = "enabled"
+  }
+
   block_device_mappings {
     device_name = "/dev/sda1"
 
     ebs {
       delete_on_termination = true
-      encrypted  = true
-      volume_size = 8
-      volume_type = "gp3"
-      throughput = 125
-      iops = 3000
+      encrypted             = true
+      volume_size           = 8
+      volume_type           = "gp3"
+      throughput            = 125
+      iops                  = 3000
     }
   }
 
@@ -95,14 +126,14 @@ resource "aws_launch_template" "asg" {
 resource "aws_autoscaling_group" "docker_manager" {
   placement_group = aws_placement_group.managers.id
 
-  name_prefix = "docker-manager"
+  name = "docker-manager"
 
-  min_size = 1
+  min_size         = 0
   desired_capacity = 1
-  max_size = 3
+  max_size         = 3
 
   capacity_rebalance        = true
-  force_delete              = true
+  force_delete              = false
   vpc_zone_identifier       = aws_subnet.public.*.id
   default_instance_warmup   = 60
   default_cooldown          = 15
@@ -114,10 +145,6 @@ resource "aws_autoscaling_group" "docker_manager" {
     instances_distribution {
       on_demand_base_capacity                  = 0
       on_demand_percentage_above_base_capacity = 100
-
-#      spot_instance_pools      = 0
-#      spot_allocation_strategy = "capacity-optimized"
-#      spot_max_price           = "0.0"
     }
 
     launch_template {
@@ -133,8 +160,7 @@ resource "aws_autoscaling_group" "docker_manager" {
 
     preferences {
       skip_matching          = true
-      min_healthy_percentage = 70
-      instance_warmup        = 60
+      min_healthy_percentage = 90
     }
   }
 

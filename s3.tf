@@ -43,6 +43,7 @@ resource "aws_s3_bucket_public_access_block" "docker_swarm" {
 
   depends_on = [
     aws_s3_bucket.docker_swarm,
+    aws_s3_bucket_acl.docker_swarm,
   ]
 }
 
@@ -52,6 +53,7 @@ resource "aws_s3_bucket_acl" "docker_swarm" {
 
   depends_on = [
     aws_s3_bucket.docker_swarm,
+    aws_s3_bucket_ownership_controls.docker_swarm,
   ]
 }
 

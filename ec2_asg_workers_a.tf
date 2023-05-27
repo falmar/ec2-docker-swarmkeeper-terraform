@@ -38,8 +38,8 @@ resource "aws_iam_policy" "docker_worker_join" {
 }
 
 resource "aws_launch_template" "docker_worker" {
-  name_prefix = "docker_worker"
-  image_id    = data.aws_ami.arm_ubuntu_docker.id
+  name     = "docker-worker"
+  image_id = data.aws_ami.arm_ubuntu_docker.id
 
   key_name = aws_key_pair.main.key_name
 
@@ -87,7 +87,11 @@ resource "aws_launch_template" "docker_worker" {
     cpu_credits = "unlimited"
   }
 
-  user_data = base64encode("")
+  user_data = base64encode(<<EOF
+#!/bin/bash
+sleep 5;
+EOF
+  )
 
   tags = {
     "DockerPlatform"     = "linux"
@@ -102,14 +106,14 @@ resource "aws_launch_template" "docker_worker" {
 resource "aws_autoscaling_group" "docker_worker" {
   placement_group = aws_placement_group.workers_a.id
 
-  name_prefix = "docker-worker"
+  name = "docker-worker"
 
-  min_size         = 1
-  desired_capacity = 1
-  max_size         = 3
+  min_size         = 0
+  desired_capacity = 2
+  max_size         = 6
 
   capacity_rebalance        = true
-  force_delete              = true
+  force_delete              = false
   vpc_zone_identifier       = aws_subnet.public.*.id
   default_instance_warmup   = 60
   default_cooldown          = 60
@@ -132,6 +136,14 @@ resource "aws_autoscaling_group" "docker_worker" {
         launch_template_id = aws_launch_template.docker_worker.id
         version            = aws_launch_template.docker_worker.latest_version
       }
+
+      #      override {
+      #        instance_type = "t4g.nano"
+      #      }
+      #
+      #      override {
+      #        instance_type = "t4g.micro"
+      #      }
     }
   }
 
@@ -140,10 +152,9 @@ resource "aws_autoscaling_group" "docker_worker" {
 
     preferences {
       skip_matching          = true
-      min_healthy_percentage = 70
+      min_healthy_percentage = 90
     }
   }
-
   tag {
     key                 = "Name"
     value               = "docker-worker"
@@ -160,6 +171,12 @@ resource "aws_autoscaling_group" "docker_worker" {
     propagate_at_launch = true
   }
 
+  tag {
+    key                 = "LifecycleHookName"
+    propagate_at_launch = true
+    value               = "worker-drain"
+  }
+
   lifecycle {
     ignore_changes = [
       load_balancers,
@@ -174,10 +191,10 @@ resource "aws_autoscaling_group" "docker_worker" {
 }
 
 resource "aws_autoscaling_lifecycle_hook" "docker_worker" {
-  name                   = "wait_docker_worker"
+  name                   = "worker-drain"
   autoscaling_group_name = aws_autoscaling_group.docker_worker.name
   default_result         = "CONTINUE"
-  heartbeat_timeout      = 120 # 2 minutes
+  heartbeat_timeout      = 120 # 30s
   lifecycle_transition   = "autoscaling:EC2_INSTANCE_TERMINATING"
 
   // TODO: add notification
