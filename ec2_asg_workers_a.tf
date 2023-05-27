@@ -50,7 +50,7 @@ resource "aws_launch_template" "docker_worker" {
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
-    http_put_response_hop_limit = 2
+    http_put_response_hop_limit = 1
     instance_metadata_tags      = "enabled"
   }
 
@@ -109,7 +109,7 @@ resource "aws_autoscaling_group" "docker_worker" {
   name = "docker-worker"
 
   min_size         = 0
-  desired_capacity = 2
+  desired_capacity = 3
   max_size         = 6
 
   capacity_rebalance        = true

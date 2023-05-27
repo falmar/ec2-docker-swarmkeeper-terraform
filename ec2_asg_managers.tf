@@ -67,7 +67,7 @@ resource "aws_launch_template" "asg" {
 
   key_name = aws_key_pair.main.key_name
 
-  # free until 2023-12-31
+  # free hours/month until 2023-12-31
   instance_type          = "t4g.small"
   update_default_version = true
 
@@ -78,7 +78,7 @@ resource "aws_launch_template" "asg" {
   metadata_options {
     http_endpoint               = "enabled"
     http_tokens                 = "required"
-    http_put_response_hop_limit = 2
+    http_put_response_hop_limit = 1
     instance_metadata_tags      = "enabled"
   }
 
@@ -111,7 +111,11 @@ resource "aws_launch_template" "asg" {
     cpu_credits = "unlimited"
   }
 
-  user_data = base64encode("")
+  user_data = base64encode(<<EOF
+#!/bin/bash
+sleep 5;
+EOF
+  )
 
   tags = {
     "DockerPlatform"     = "linux"
